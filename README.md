@@ -1,7 +1,7 @@
 # AsmCalc
 AsmCalc is a free calculator written in assembly language. This is still pre-alpha version.
 
-License:
+##License
 Licensed under the MIT license, see LICENSE file for details.
 
 Credits:
