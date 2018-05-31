@@ -1,13 +1,13 @@
 # AsmCalc
 AsmCalc is a free calculator written in assembly language. This is still pre-alpha version.
 
-##License
+License
 Licensed under the MIT license, see LICENSE file for details.
 
-#Credits
+Credits
 AsmCalc development and bugfixes by Victor Antoci.
 
-#Compilation
+Compilation
 One of the ways to compile sources is to use yasm for compilation and mingw for linking and resource compilation, though other linkers and resource compilers should do the job too.
 
 Compilation: yasm-1.3.0-win32.exe -f win32 calc.asm
