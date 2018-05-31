@@ -1,3 +1,4 @@
+; TODO: *-, functions usage hints
 ; calculator written in assembly language
 ; This file is provided as is with no warranty of any kind. Use at your own risk.
 section .text

@@ -2,9 +2,11 @@
 #define IDC_STATIC (-1)
 #endif
 
-#define RT_MANIFEST                             24
+#define IDR_ACCELERATOR                         101
+#define IDR_MANIFEST                            102
 #define IDD_DLGMAIN                             104
-#define IDR_MANIFEST                            101
+#define IDM_SELECTALL                           200
+#define IDM_EXIT                                201
 #define IDC_EDITINPUT                           40000
 #define IDC_DEGREES                             40001
 #define IDC_RADIANS                             40002
@@ -71,3 +73,4 @@
 #define IDC_BUTTONBITLEFT                       40063
 #define IDC_BUTTONBITRIGHT                      40064
 #define IDC_BUTTONPOINT                         40065
+#define IDC_STATICHINT                          40066

@@ -161,15 +161,18 @@ import 	MessageBox, _MessageBoxW@16,\
 		VirtualAlloc, _VirtualAlloc@16,\
 		VirtualFree, _VirtualFree@12,\
 		GetModuleHandle, _GetModuleHandleW@4,\
+		LoadAccelerators, _LoadAcceleratorsW@8,\
 		DialogBoxParam, _DialogBoxParamW@20,\
 		CreateDialogParam, _CreateDialogParamW@20,\
 		GetMessage, _GetMessageW@16,\
+		TranslateAccelerator, _TranslateAcceleratorW@12,\
 		IsDialogMessage, _IsDialogMessageW@8,\
 		TranslateMessage, _TranslateMessage@4,\
 		DispatchMessage, _DispatchMessageW@4,\
 		PostQuitMessage, _PostQuitMessage@4,\
 		GetWindowLongPtr, _GetWindowLongW@8,\
 		SetWindowLongPtr, _SetWindowLongW@12,\
+		GetFocus, _GetFocus@0,\
 		CallWindowProc, _CallWindowProcW@20,\
 		EndDialog, _EndDialog@8,\
 		GetWindowTextLength, _GetWindowTextLengthW@4,\

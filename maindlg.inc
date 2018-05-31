@@ -2,6 +2,9 @@
 ; This file is provided as is with no warranty of any kind. Use at your own risk.
 ; definitions from resource.h
 IDD_DLGMAIN				equ 104
+IDR_ACCELERATOR			equ 101
+IDM_SELECTALL       	equ 200
+IDM_EXIT           		equ 201
 IDC_EDITINPUT			equ 40000
 IDC_DEGREES				equ 40001
 IDC_RADIANS				equ 40002
@@ -69,11 +72,13 @@ IDC_BUTTONBITLEFT		equ 40063
 IDC_BUTTONBITRIGHT		equ 40064
 IDC_BUTTONPOINT			equ 40065
 IDC_BUTTONCOUNT			equ	(1 + IDC_BUTTONPOINT - IDC_BUTTONADDHISTORY)
+IDC_STATICHINT			equ 40066
 
 ; main dialog structure
 struc MainDialog
 	;.Instance:		resd 1
 	.Window:		resd 1
+	.StaticHint:	resd 1
 	.EditInput:		resd 1
 	.EditResult:	resd 1
 	.RadioDegrees:	resd 1	; these 3 radios should be groupped
@@ -94,23 +99,29 @@ MAX_HISTORY_COUNT	equ	20
 
 ; ebx == null, edi == this
 proc MainDialog_Create, .Instance
-	enter	.message: resb MSG.size
-		;~ ; should be created via CreateDialog for dpi awareness to work
+	enter	.accelerator resd 1,\
+			.message: resb MSG.size
 		;~ ;mov		eax, [.Instance]
 		;~ ;mov		[edi + MainDialog.Instance], eax
 		;~ invoke	DialogBoxParam, [.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
+		invoke	LoadAccelerators, [.Instance], IDR_ACCELERATOR
+		mov		[.accelerator], eax
+		; should be created via CreateDialog for dpi awareness to work
 		invoke	CreateDialogParam, [.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
 		lea		esi, [.message]
 	.messageLoop:
 		invoke	GetMessage, esi, null, _0, _0
 		test	eax, eax
 		je		.quitMessageLoop
-			invoke	IsDialogMessage, [edi + MainDialog.Window], esi
+			invoke	TranslateAccelerator, [edi + MainDialog.Window], [.accelerator], esi
 			test	eax, eax
 			jne		.messageLoop
-			invoke	TranslateMessage, esi
-			invoke	DispatchMessage, esi
-			jmp		.messageLoop
+				invoke	IsDialogMessage, [edi + MainDialog.Window], esi
+				test	eax, eax
+				jne		.messageLoop
+					invoke	TranslateMessage, esi
+					invoke	DispatchMessage, esi
+					jmp		.messageLoop
 	.quitMessageLoop:
 		;~ // message loop
 		;~ MSG message;
@@ -149,6 +160,8 @@ endp
 ; ebx == null, edi == this
 proc MainDialog_onInitDialog
 	;enter
+		invoke	GetDlgItem, esi, IDC_STATICHINT
+		mov		[edi + MainDialog.StaticHint], eax
 		invoke	GetDlgItem, esi, IDC_EDITINPUT
 		mov		[edi + MainDialog.EditInput], eax
 		invoke	GetDlgItem, esi, IDC_EDITRESULT
@@ -533,6 +546,23 @@ proc MainDialog_onButtonPress, .Id
 			.resultStr resw MAX_RESULT_LENGTH
 	push	eax, ecx
 		mov		eax, [.Id]
+		cmp		eax, IDM_SELECTALL
+		jne		.notIdmSelectAll
+			invoke	GetFocus
+			cmp		eax, [edi + MainDialog.EditInput]
+			je		.someEdit
+			cmp		eax, [edi + MainDialog.EditResult]
+			je		.someEdit
+			jmp		.setFocus
+		.someEdit:
+			invoke	SendMessage, eax, EM_SETSEL, _0, -1	; select all text
+			jmp		.setFocus
+	.notIdmSelectAll:
+		cmp		eax, IDM_EXIT
+		jne		.notIdmExit
+			stdcall	MainDialog_onExit
+			jmp		.setFocus
+	.notIdmExit:
 		sub		eax, IDC_BUTTONADDHISTORY
 		cmp		eax, IDC_BUTTONCOUNT
 		jae		.done
@@ -595,227 +625,284 @@ proc MainDialog_onButtonPress, .Id
 		.button0:
 			push	_0
 			push_unicode_string "0"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonMinus:
 			push	_0
 			push_unicode_string "-"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonPlus:
 			push	_0
 			push_unicode_string "+"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonMultiply:
 			push	_0
 			push_unicode_string "*"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonDivide:
 			push	_0
 			push_unicode_string "/"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonAsin:
 			push	dword -1
 			push_unicode_string "asin()"
+			push_unicode_string "hint: asin(value), depends on angle mode"
 			jmp		.replaceSel
 		.button1:
 			push	_0
 			push_unicode_string "1"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button2:
 			push	_0
 			push_unicode_string "2"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button3:
 			push	_0
 			push_unicode_string "3"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button4:
 			push	_0
 			push_unicode_string "4"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button5:
 			push	_0
 			push_unicode_string "5"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button6:
 			push	_0
 			push_unicode_string "6"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button7:
 			push	_0
 			push_unicode_string "7"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button8:
 			push	_0
 			push_unicode_string "8"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.button9:
 			push	_0
 			push_unicode_string "9"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonSin:
 			push	dword -1
 			push_unicode_string "sin()"
+			push_unicode_string "hint: sin(angle), depends on angle mode"
 			jmp		.replaceSel
 		.buttonCos:
 			push	dword -1
 			push_unicode_string "cos()"
+			push_unicode_string "hint: cos(angle), depends on angle mode"
 			jmp		.replaceSel
 		.buttonTan:
 			push	dword -1
 			push_unicode_string "tan()"
+			push_unicode_string "hint: tan(angle), depends on angle mode"
 			jmp		.replaceSel
 		.buttonDiv:
 			push	dword -2
 			push_unicode_string "div(,)"
+			push_unicode_string "hint: div(value1, value2), calculates int(value1 / value2)"
 			jmp		.replaceSel
 		.buttonAbs:
 			push	dword -1
 			push_unicode_string "abs()"
+			push_unicode_string "hint: abs(value), absolute value"
 			jmp		.replaceSel
 		.buttonXpowY:
 			push	_0
 			push_unicode_string "^"
+			push_unicode_string "hint: x^y, exponentiation"
 			jmp		.replaceSel
 		.buttonLg:
 			push	dword -1
 			push_unicode_string "lg()"
+			push_unicode_string "hint: lg(value), logarithm with base 10, value > 0"
 			jmp		.replaceSel
 		.buttonLn:
 			push	dword -1
 			push_unicode_string "ln()"
+			push_unicode_string "hint: ln(value), logarithm with base 2.7178..., value > 0"
 			jmp		.replaceSel
 		.buttonExp:
 			push	dword -1
 			push_unicode_string "exp()"
+			push_unicode_string "hint: exp(value), euler ^ val"
 			jmp		.replaceSel
 		.buttonSqrt:
 			push	dword -1
 			push_unicode_string "sqrt()"
+			push_unicode_string "hint: sqrt(value), square root, val >= 0"
 			jmp		.replaceSel
 		.buttonPerc:
 			push	_0
 			push_unicode_string "%"
+			push_unicode_string "hint: 12% = 0.12"
 			jmp		.replaceSel
 		.buttonACos:
 			push	dword -1
 			push_unicode_string "acos()"
+			push_unicode_string "hint: acos(value), depends on angle mode"
 			jmp		.replaceSel
 		.buttonATan:
 			push	dword -1
 			push_unicode_string "atan()"
+			push_unicode_string "hint: atan(value), depends on angle mode"
 			jmp		.replaceSel
 		.buttonSh:
 			push	dword -1
 			push_unicode_string "sh()"
+			push_unicode_string "hint: sh(value), hyperbolic sine"
 			jmp		.replaceSel
 		.buttonCh:
 			push	dword -1
 			push_unicode_string "ch()"
+			push_unicode_string "hint: ch(value), hyperbolic cosine"
 			jmp		.replaceSel
 		.buttonTh:
 			push	dword -1
 			push_unicode_string "th()"
+			push_unicode_string "hint: th(value), hyperbolic tangent"
 			jmp		.replaceSel
 		.buttonArSh:
 			push	dword -1
 			push_unicode_string "arsh()"
+			push_unicode_string "hint: arsh(value), area hyperbolic sine"
 			jmp		.replaceSel
 		.buttonArCh:
 			push	dword -1
 			push_unicode_string "arch()"
+			push_unicode_string "hint: arsh(value), area hyperbolic cosine"
 			jmp		.replaceSel
 		.buttonArTh:
 			push	dword -1
 			push_unicode_string "arth()"
+			push_unicode_string "hint: arsh(value), area hyperbolic tangent"
 			jmp		.replaceSel
 		.buttonRoot:
 			push	dword -2
 			push_unicode_string "root(,)"
+			push_unicode_string "hint: root(value, power)"
 			jmp		.replaceSel
 		.buttonXpow3:
 			push	_0
 			push_unicode_string "^3"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonXpow2:
 			push	_0
 			push_unicode_string "^2"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonLogN:
 			push	dword -2
 			push_unicode_string "logN(,)"
+			push_unicode_string "hint: logN(N, value)"
 			jmp		.replaceSel
 		.buttonLog2:
 			push	dword -1
 			push_unicode_string "log2()"
+			push_unicode_string "hint: log2(value), logarithm with base 2"
 			jmp		.replaceSel
 		.buttonLog10:
 			push	dword -1
 			push_unicode_string "lg()"
+			push_unicode_string "hint: lg(value), logarithm with base 10, value > 0"
 			jmp		.replaceSel
 		.buttonPi:
 			push	_0
 			push_unicode_string "pi"
+			push_unicode_string "hint: Archimedes` constant."
 			jmp		.replaceSel
 		.buttonEuler:
 			push	_0
 			push_unicode_string "euler"
+			push_unicode_string "hint: Euler`s number"
 			jmp		.replaceSel
 		.buttonBracket1:
 			push	_0
 			push_unicode_string "("
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonBracket2:
 			push	_0
 			push_unicode_string ")"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonBrackets:
 			push	dword -1
 			push_unicode_string "()"
+			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonBin:
 			push	dword -1
 			push_unicode_string "bin()"
+			push_unicode_string "hint: bin(32 bit binary number)"
 			jmp		.replaceSel
 		.buttonOct:
 			push	dword -1
 			push_unicode_string "oct()"
+			push_unicode_string "hint: oct(32 bit octal number)"
 			jmp		.replaceSel
 		.buttonHex:
 			push	dword -1
 			push_unicode_string "hex()"
+			push_unicode_string "hint: hex(32 bit hexadecimal number)"
 			jmp		.replaceSel
 		.buttonMod:
 			push	dword -2
 			push_unicode_string "mod(,)"
+			push_unicode_string "hint: mod(value1, value2), calculates value1 - value2 * int(value1 / value2) "
 			jmp		.replaceSel
 		.buttonBitAnd:
 			push	dword -2
 			push_unicode_string "bitand(,)"
+			push_unicode_string "hint: bitand(value1, value2), bit AND of two 32 bit integer values"
 			jmp		.replaceSel
 		.buttonBitOr:
 			push	dword -2
 			push_unicode_string "bitor(,)"
+			push_unicode_string "hint: bitor(value1, value2), bit OR of two 32 bit integer values"
 			jmp		.replaceSel
 		.buttonBitXor:
 			push	dword -2
 			push_unicode_string "bitxor(,)"
+			push_unicode_string "hint: bitxor(value1, value2), bit XOR of two 32 bit integer values"
 			jmp		.replaceSel
 		.buttonBitNot:
 			push	dword -1
 			push_unicode_string "bitnot()"
+			push_unicode_string "hint: bitnot(value), bit NOT of 32 bit integer value"
 			jmp		.replaceSel
 		.buttonBitLeft:
 			push	dword -2
 			push_unicode_string "bitleft(,)"
+			push_unicode_string "hint: bitleft(value, shift), bit shift left of 32 bit integer value"
 			jmp		.replaceSel
 		.buttonBitRight:
 			push	dword -2
 			push_unicode_string "bitright(,)"
+			push_unicode_string "hint: bitright(value, shift), bit shift right of 32 bit integer value"
 			jmp		.replaceSel
 		.buttonPoint:
 			push	_0
 			push_unicode_string "."
+			push_unicode_string ""
 		.replaceSel:
+			invoke	SetWindowText, [edi + MainDialog.StaticHint]
 			lea		eax, [_0 + 1]	; replacement can be undone
 			invoke	SendMessage, [edi + MainDialog.EditInput], EM_REPLACESEL, eax
 			lea		eax, [.selStart]
