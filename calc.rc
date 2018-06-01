@@ -112,4 +112,4 @@ IDR_ACCELERATOR ACCELERATORS
 // Manifest resources
 //
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
-IDR_MANIFEST       RT_MANIFEST    ".\\manifest.txt"
+IDR_MANIFEST       RT_MANIFEST    ".\\calc.exe.manifest"
