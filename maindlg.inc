@@ -96,11 +96,20 @@ MAX_HISTORY_COUNT	equ	20
 ;~ message: resb MSG.size
 
 [section .text]
-
 ; ebx == null, edi == this
 proc MainDialog_Create, .Instance
-	enter	.accelerator resd 1,\
+	enter	.uxtheme,\
+			.accelerator resd 1,\
 			.message: resb MSG.size
+		invoke	LoadLibrary, "uxtheme.dll"
+		test	eax, eax
+		je		.noUxTheme
+		mov		[.uxtheme], eax
+		invoke	GetProcAddress, eax, .SetThemeAppProperties
+		test	eax, eax
+		je		.noUxTheme
+		invoke	eax, STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS | STAP_ALLOW_WEBCONTENT
+	.noUxTheme:
 		;~ ;mov		eax, [.Instance]
 		;~ ;mov		[edi + MainDialog.Instance], eax
 		;~ invoke	DialogBoxParam, [.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
@@ -123,6 +132,7 @@ proc MainDialog_Create, .Instance
 					invoke	DispatchMessage, esi
 					jmp		.messageLoop
 	.quitMessageLoop:
+		invoke	FreeLibrary, [.uxtheme]
 		;~ // message loop
 		;~ MSG message;
 		;~ // retrieve message
@@ -138,6 +148,7 @@ proc MainDialog_Create, .Instance
 		;~ }
 	leave
 	return
+	.SetThemeAppProperties	db "SetThemeAppProperties", 0
 endp
 ; input edit procedure
 proc MainDialog_InputEditProc, .Window, .Message, .WordParam, .LongParam

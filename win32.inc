@@ -157,6 +157,9 @@ tword.size	equ 10
 
 import 	MessageBox, _MessageBoxW@16,\
 		ExitProcess, _ExitProcess@4,\
+		LoadLibrary, _LoadLibraryW@4,\
+		FreeLibrary, _FreeLibrary@4,\
+		GetProcAddress, _GetProcAddress@8,\
 		InitCommonControlsEx, _InitCommonControlsEx@4,\
 		InitCommonControls, _InitCommonControls@0,\
 		LoadIcon, _LoadIconW@8,\
@@ -343,6 +346,10 @@ DLGC_STATIC				equ 256
 DLGC_BUTTON				equ 0x2000
 
 ICC_WIN95_CLASSES		equ 255
+
+STAP_ALLOW_NONCLIENT	equ 0x00000001
+STAP_ALLOW_CONTROLS		equ 0x00000002
+STAP_ALLOW_WEBCONTENT	equ 0x00000004
 
 struc POINT
 	.x:		resd 1

@@ -16,7 +16,8 @@ proc _main
 
 		;~ jmp		MainDialog_InputEditProc	; make ollydbg recognize instructions in this proc
 		;~ stdcall	uninitApp
-    return
+		invoke	ExitProcess, _0
+    ;return
 endp
 
 %include "evaluator.inc"
