@@ -195,8 +195,7 @@ proc MainDialog_onExit
 		; restore window proc
 		invoke	SetWindowLongPtr, [edi + MainDialog.EditInput], GWLP_WNDPROC, [edi + MainDialog.InputEditProc]
 		; end dialog
-		invoke	EndDialog, [edi + MainDialog.Window], _0
-		invoke	PostQuitMessage, _0
+		invoke	DestroyWindow, [edi + MainDialog.Window]
 	return
 endp
 
@@ -992,8 +991,12 @@ proc MainDialog_DialogProc, .Dialog, .Message, .WordParam, .LongParam
 			cmp		eax, WM_CLOSE
 			jne		.notWmClose
 				stdcall	MainDialog_onExit
-				;~ jmp		.return_false
+				jmp		.return_true
 		.notWmClose:
+			cmp		eax, WM_DESTROY
+			jne		.notWmDestroy
+				invoke	PostQuitMessage, _0
+		.notWmDestroy:
 	.return_false:
 		xor		eax, eax
 .leave:

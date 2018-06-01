@@ -158,6 +158,7 @@ tword.size	equ 10
 import 	MessageBox, _MessageBoxW@16,\
 		ExitProcess, _ExitProcess@4,\
 		InitCommonControlsEx, _InitCommonControlsEx@4,\
+		InitCommonControls, _InitCommonControls@0,\
 		LoadIcon, _LoadIconW@8,\
 		VirtualAlloc, _VirtualAlloc@16,\
 		VirtualFree, _VirtualFree@12,\
@@ -165,6 +166,7 @@ import 	MessageBox, _MessageBoxW@16,\
 		LoadAccelerators, _LoadAcceleratorsW@8,\
 		DialogBoxParam, _DialogBoxParamW@20,\
 		CreateDialogParam, _CreateDialogParamW@20,\
+		DestroyWindow, _DestroyWindow@4,\
 		GetMessage, _GetMessageW@16,\
 		TranslateAccelerator, _TranslateAcceleratorW@12,\
 		IsDialogMessage, _IsDialogMessageW@8,\

@@ -58,7 +58,8 @@ proc initApp
 	;enter
 		xor     ebx, ebx        ; ebx = null
 
-		invoke	InitCommonControlsEx, InitCtrls
+		;~ invoke	InitCommonControlsEx, InitCtrls
+		invoke	InitCommonControls
 
 		finit
 		;~ ; test cases
@@ -102,11 +103,11 @@ endp
 ;~ endp
 
 [section .data]
-InitCtrls:			istruc INITCOMMONCONTROLSEX
-	at INITCOMMONCONTROLSEX.dwSize
-					dd INITCOMMONCONTROLSEX.size
-					dd ICC_WIN95_CLASSES
-					iend
+;~ InitCtrls:			istruc INITCOMMONCONTROLSEX
+	;~ at INITCOMMONCONTROLSEX.dwSize
+					;~ dd INITCOMMONCONTROLSEX.size
+					;~ dd ICC_WIN95_CLASSES
+					;~ iend
 
 [section .bss]
 gMainDlg:			resb MainDialog.size
