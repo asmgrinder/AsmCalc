@@ -103,10 +103,10 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 				jne		.continue_cycle					; don't test operations
 					cmp		dl, 2
 					jne		.notPass2
-						cmp		ax, '-'					; case '-' (can be inside e+n)
-						jne		.not_minus
+						cmp		ax, '-'					; case '-' (can be inside e-n)
+						jne		.notMinus
 						test	ecx, ecx
-						jne		.not_unary_minus
+						jne		.notUnaryMinus
 						push	edi
 							lea		eax, [.result1]
 							push	eax					; fourth parameter to Evaluate call
@@ -119,29 +119,33 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 						fld		tword[.result1]
 						fchs
 						jmp		.done
-					.not_unary_minus:
+					.notUnaryMinus:
+						call	.testIfOpOk
+						je		.notMinus
 						call	.calculateSubexpressions
-						jne		.continue_cycle
+						jne		.fail
 							fsubp	st1, st0
 							call	.checkFpuState
 							je		.done
-							jmp		.fail_fcomp
-					.not_minus:
+							jmp		.failFcomp
+					.notMinus:
 						cmp		ax, '+'					; case '+' (can be inside e+n)
-						jne		.not_plus
+						jne		.notPlus
+						call	.testIfOpOk
+						je		.notPlus
 						call	.calculateSubexpressions
-						jne		.continue_cycle
+						jne		.fail
 							faddp	st1, st0
 							call	.checkFpuState
 							je		.done
-							jmp		.fail_fcomp
-					.not_plus:
+							jmp		.failFcomp
+					.notPlus:
 						jmp		.continue_cycle
 				.notPass2:
 						test	edx, edx
 						je		.notPass1
 						cmp		ax, '/'					; case '/'
-						jne		.not_divide
+						jne		.notDivide
 							call	.calculateSubexpressions
 							jne		.fail
 							ftst
@@ -150,22 +154,22 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 							jne		.doDivide
 								;fcompp
 								mov		eax, .divisionByZeroStr
-								jmp		.fail_fcompp
+								jmp		.failFcompp
 						.doDivide:
 							fdivp	st1
 							call	.checkFpuState
 							je		.done
-							jmp		.fail_fcomp
-					.not_divide:
+							jmp		.failFcomp
+					.notDivide:
 						cmp		ax, '*'					; case '*'
-						jne		.not_multiply
+						jne		.notMultiply
 						call	.calculateSubexpressions
 						jne		.fail
 							fmulp	st1
 							call	.checkFpuState
 							je		.done
-							jmp		.fail_fcomp
-					.not_multiply:
+							jmp		.failFcomp
+					.notMultiply:
 						jmp		.continue_cycle
 				.notPass1:
 						cmp		ax, '^'
@@ -205,7 +209,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 							;~ fstsw	ax
 							;~ sahf
 							;~ mov		eax, .negativeBaseStr
-							;~ jb		.fail_fcompp			; power is not integer and not very close to
+							;~ jb		.failFcompp			; power is not integer and not very close to
 							;~ frndint
 							;~ fist	dword[.power]
 							;~ mov		eax, [.power]
@@ -215,7 +219,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 						;~ .powerPositive:
 							;~ cmp		eax, 1000000000
 							;~ mov		eax, .exponentTooBig
-							;~ jae		.fail_fcompp
+							;~ jae		.failFcompp
 							;~ xor		eax, eax
 							;~ fxch
 							;~ test	byte[.power], 1
@@ -230,7 +234,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 						;~ .keepSign:
 							;~ call	.checkFpuState
 							;~ je		.done
-							jmp		.fail_fcomp
+							jmp		.failFcomp
 					.notPower:						
 			.continue_cycle:							; inner cycle
 				test	ecx, ecx
@@ -287,20 +291,20 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			stdcall	convertAngleToRadians, [.AngleMode]
 			fsin
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.cos:
 			stdcall	convertAngleToRadians, [.AngleMode]
 			fcos
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.tan:
 			stdcall	convertAngleToRadians, [.AngleMode]
 			fptan
 			fcomp	st1
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.asin:
 			fld1
@@ -311,7 +315,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fpatan
 			stdcall	convertRadiansToAngle, [.AngleMode]
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.acos
 			fld1
@@ -323,29 +327,29 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fpatan
 			stdcall	convertRadiansToAngle, [.AngleMode]
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.atan:
 			fld1
 			fpatan
 			stdcall	convertRadiansToAngle, [.AngleMode]
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.sqrt:
 			ftst
 			fstsw	ax
 			sahf
 			mov		eax, .negativeSqrtArgStr
-			jb		.fail_fcomp
+			jb		.failFcomp
 			fsqrt
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.abs:
 			fabs
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.exp:
 			stdcall	exp
@@ -353,7 +357,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			;~ fmulp	st1, st0
 			;~ call	pow2
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.log10:
 		.lg:
@@ -361,40 +365,40 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fstsw	ax
 			sahf
 			mov		eax, .negativeLogArgStr
-			jb		.fail_fcomp
+			jb		.failFcomp
 			fld1
 			fldl2t
 			fdivp	st1, st0
 			fxch
 			fyl2x
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.ln:
 			ftst
 			fstsw	ax
 			sahf
 			mov		eax, .negativeLogArgStr
-			jb		.fail_fcomp
+			jb		.failFcomp
 			fld1
 			fldl2e
 			fdivp	st1, st0
 			fxch
 			fyl2x
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.log2:
 			ftst
 			fstsw	ax
 			sahf
 			mov		eax, .negativeLogArgStr
-			jb		.fail_fcomp
+			jb		.failFcomp
 			fld1
 			fxch
 			fyl2x
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.sh:
 			fld		st0
@@ -407,7 +411,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fadd	st0, st0
 			fdivp	st1, st0
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.ch:
 			fld		st0
@@ -420,7 +424,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fadd	st0, st0
 			fdivp	st1, st0
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.th:
 			fld		st0
@@ -436,7 +440,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			faddp	st1, st0
 			fdivp	st1, st0
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.arsh:
 			fld		st0
@@ -446,7 +450,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fsqrt
 			faddp
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.ln
 		.arch:
 			fld		st0
@@ -457,11 +461,11 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fstsw	ax
 			sahf
 			mov		eax, .negativeSqrtArgStr
-			jb		.fail_fcompp
+			jb		.failFcompp
 			fsqrt
 			faddp
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.ln
 		.arth:
 			fld1
@@ -477,7 +481,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fstsw	ax
 			sahf
 			mov		eax, .negativeLogArgStr
-			jb		.fail_fcomp
+			jb		.failFcomp
 			fld1
 			fldl2e
 			fdivp	st1, st0
@@ -487,7 +491,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fadd	st0, st0
 			fdivp	st1, st0
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.notEqualFunc:
 			inc		edx
@@ -513,7 +517,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			stdcall	power
 			jne		.fail
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.logn:
 			fld1
@@ -525,7 +529,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fyl2x
 			fdivp	st1
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.div:
 			fdivp
@@ -533,7 +537,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			frndint
 			stdcall	setRoundMode, ROUND_NEAREST
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.mod:
 			fld		st1
@@ -545,7 +549,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			fmulp	st1, st0
 			fsubp	st1, st0
 			call	.checkFpuState
-			jne		.fail_fcomp
+			jne		.failFcomp
 			jmp		.done
 		.bitand:
 			fistp	dword[.bitArg2]
@@ -738,15 +742,43 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 		fclex
 	leave
 	return
-.fail_fcompp:
+.failFcompp:
 	fcomp	st1
-.fail_fcomp:
+.failFcomp:
 	fistp	dword[.dummy]
 .fail:
 	jmp		.leave
 align 4
 .100:		dd	100
 .euler:		dt	2.7182818284590452354
+
+.testIfOpOk:
+	; test if there isn't operation to the left of '-' or '+'
+		push	eax, ecx, esi
+	.skip_spaces_left:
+		test	ecx, ecx
+		je		.test_done
+		dec		ecx
+		movzx	eax, word[esi + ecx * word.size]
+		cmp		ax, ' '
+		jbe		.skip_spaces_left
+	.spaces_skipped:
+		cmp		ax, '-'
+		je		.test_done
+		cmp		ax, '+'
+		je		.test_done
+		cmp		ax, '*'
+		je		.test_done
+		cmp		ax, '/'
+		je		.test_done
+		cmp		ax, '^'
+		je		.test_done
+		cmp		ax, 'e'
+		je		.test_done
+		cmp		ax, 'E'
+	.test_done:
+		pop		esi, ecx, eax
+		ret
 
 .calculateSubexpressions:
 	lea		eax, [.result1]
@@ -1360,7 +1392,7 @@ proc power
 		fstsw	ax
 		sahf
 		mov		eax, .negativeBaseStr
-		jb		.fail_fcompp			; power is not integer and not very close to
+		jb		.failFcompp			; power is not integer and not very close to
 		frndint
 		fist	dword[.intPower]
 		mov		eax, [.intPower]
@@ -1370,7 +1402,7 @@ proc power
 	.powerPositive:
 		cmp		eax, 1000000000
 		mov		eax, .exponentTooBig
-		jae		.fail_fcompp
+		jae		.failFcompp
 		xor		eax, eax
 		fxch
 		test	byte[.intPower], 1
@@ -1389,7 +1421,7 @@ proc power
 		test	eax, eax
 	leave
 	return
-.fail_fcompp:
+.failFcompp:
 	fcompp
 	jmp		.return
 ; error messages
