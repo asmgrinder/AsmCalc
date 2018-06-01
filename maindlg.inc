@@ -41,12 +41,12 @@ IDC_BUTTONSQRT			equ 40032
 IDC_BUTTONPERC			equ 40033
 IDC_BUTTONACOS			equ 40034
 IDC_BUTTONATAN			equ 40035
-IDC_BUTTONSH			equ 40036
-IDC_BUTTONCH			equ 40037
-IDC_BUTTONTH			equ 40038
-IDC_BUTTONARSH			equ 40039
-IDC_BUTTONARCH			equ 40040
-IDC_BUTTONARTH			equ 40041
+IDC_BUTTONSINH			equ 40036
+IDC_BUTTONCOSH			equ 40037
+IDC_BUTTONTANH			equ 40038
+IDC_BUTTONASINH			equ 40039
+IDC_BUTTONACOSH			equ 40040
+IDC_BUTTONATANH			equ 40041
 IDC_BUTTONROOT			equ 40042
 IDC_BUTTONXPOW3			equ 40043
 IDC_BUTTONXPOW2			equ 40044
@@ -762,35 +762,35 @@ proc MainDialog_onButtonPress, .Id
 			push_unicode_string "atan()"
 			push_unicode_string "hint: atan(value), depends on angle mode"
 			jmp		.replaceSel
-		.buttonSh:
+		.buttonSinh:
 			push	dword -1
-			push_unicode_string "sh()"
-			push_unicode_string "hint: sh(value), hyperbolic sine"
+			push_unicode_string "sinh()"
+			push_unicode_string "hint: sinh(value), hyperbolic sine"
 			jmp		.replaceSel
-		.buttonCh:
+		.buttonCosh:
 			push	dword -1
-			push_unicode_string "ch()"
-			push_unicode_string "hint: ch(value), hyperbolic cosine"
+			push_unicode_string "cosh()"
+			push_unicode_string "hint: cosh(value), hyperbolic cosine"
 			jmp		.replaceSel
-		.buttonTh:
+		.buttonTanh:
 			push	dword -1
-			push_unicode_string "th()"
-			push_unicode_string "hint: th(value), hyperbolic tangent"
+			push_unicode_string "tanh()"
+			push_unicode_string "hint: tanh(value), hyperbolic tangent"
 			jmp		.replaceSel
-		.buttonArSh:
+		.buttonASinh:
 			push	dword -1
-			push_unicode_string "arsh()"
-			push_unicode_string "hint: arsh(value), area hyperbolic sine"
+			push_unicode_string "asinh()"
+			push_unicode_string "hint: asinh(value), area hyperbolic sine"
 			jmp		.replaceSel
-		.buttonArCh:
+		.buttonACosh:
 			push	dword -1
-			push_unicode_string "arch()"
-			push_unicode_string "hint: arsh(value), area hyperbolic cosine"
+			push_unicode_string "acosh()"
+			push_unicode_string "hint: acosh(value), area hyperbolic cosine"
 			jmp		.replaceSel
-		.buttonArTh:
+		.buttonATanh:
 			push	dword -1
-			push_unicode_string "arth()"
-			push_unicode_string "hint: arsh(value), area hyperbolic tangent"
+			push_unicode_string "atanh()"
+			push_unicode_string "hint: atanh(value), area hyperbolic tangent"
 			jmp		.replaceSel
 		.buttonRoot:
 			push	dword -2
@@ -920,8 +920,8 @@ align 4
 .jmpTable:	dd .buttonAddHistory, .button0, .buttonMinus, .buttonPlus, .buttonCalc, .buttonMultiply, .buttonDivide
 			dd .buttonAsin, .button1, .button2, .button3, .button4, .button5, .button6, .button7, .button8, .button9
 			dd .buttonSin, .buttonCos, .buttonTan, .buttonDiv, .buttonAbs, .buttonXpowY, .buttonLg, .buttonLn
-			dd .buttonExp, .buttonSqrt, .buttonPerc, .buttonACos, .buttonATan, .buttonSh, .buttonCh, .buttonTh
-			dd .buttonArSh, .buttonArCh, .buttonArTh, .buttonRoot, .buttonXpow3, .buttonXpow2
+			dd .buttonExp, .buttonSqrt, .buttonPerc, .buttonACos, .buttonATan, .buttonSinh, .buttonCosh, .buttonTanh
+			dd .buttonASinh, .buttonACosh, .buttonATanh, .buttonRoot, .buttonXpow3, .buttonXpow2
 			dd .buttonLogN, .buttonLog2, .buttonLog10, .buttonPi, .buttonEuler, .buttonClear
 			dd .buttonBracket1, .buttonBracket2, .buttonBrackets, .buttonBin, .buttonOct, .buttonHex
 			dd .buttonMod, .buttonCopy, .buttonBitAnd, .buttonBitOr, .buttonBitXor, .buttonBitNot

@@ -1,4 +1,3 @@
-; TODO: *-, functions usage hints
 ; calculator written in assembly language
 ; This file is provided as is with no warranty of any kind. Use at your own risk.
 section .text
@@ -51,7 +50,7 @@ endp
 		fstp	tword[gTmpFloat]
 	%endif
 	%%testcase_fail:
-		invoke	MessageBox, null, %%str, FailStr, _0
+		invoke	MessageBox, null, %%str, "fail", _0
 	%%completed:
 %endm
 
@@ -63,7 +62,7 @@ proc initApp
 
 		finit
 		;~ ; test cases
-		;~ testcase_evaluate "arch(0.1)", ANGLE_MODE_DEGREES, 0, 0.0
+		testcase_evaluate "acosh(0.1)", ANGLE_MODE_DEGREES, 0, 0.0
 		;~ testcase_evaluate "hex(abba)", ANGLE_MODE_DEGREES, 1, 43962.0
 		;~ testcase_evaluate "oct(777)", ANGLE_MODE_DEGREES, 1, 511.0
 		;~ testcase_evaluate "bin(1110)", ANGLE_MODE_DEGREES, 1, 14.0
@@ -102,16 +101,12 @@ endp
 		;~ ret
 ;~ endp
 
-[section .rdata]
-FailStr:			unicode "fail", 0
-
 [section .data]
 InitCtrls:			istruc INITCOMMONCONTROLSEX
 	at INITCOMMONCONTROLSEX.dwSize
 					dd INITCOMMONCONTROLSEX.size
 					dd ICC_WIN95_CLASSES
 					iend
-SomeFloat:			dt -1.345546e-7
 
 [section .bss]
 gMainDlg:			resb MainDialog.size

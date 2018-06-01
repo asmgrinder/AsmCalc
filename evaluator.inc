@@ -400,7 +400,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
-		.sh:
+		.sinh:
 			fld		st0
 			stdcall	exp
 			fxch
@@ -413,7 +413,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
-		.ch:
+		.cosh:
 			fld		st0
 			stdcall	exp
 			fxch
@@ -426,7 +426,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
-		.th:
+		.tanh:
 			fld		st0
 			stdcall	exp
 			fxch	st1
@@ -442,7 +442,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
-		.arsh:
+		.asinh:
 			fld		st0
 			fmul	st0, st0
 			fld1
@@ -452,7 +452,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.ln
-		.arch:
+		.acosh:
 			fld		st0
 			fmul	st0, st0
 			fld1
@@ -467,7 +467,7 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.ln
-		.arth:
+		.atanh:
 			fld1
 			fld		st1
 			fsubp
@@ -955,14 +955,16 @@ align 4
 	.denormalizedStr		unicode "Denormalized", 0
 	.internalErrorStr		unicode "Internal error", 0
 
-	wcstbl .funcsList, "bitnot", "sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "abs",\
-						"exp", "lg", "ln", "log2", "log10", "sh", "ch", "th", "arsh", "arch", "arth"
+	wcstbl .funcsList, "bitnot", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh",\
+						"sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "abs",\
+						"exp", "lg", "ln", "log2", "log10"
 	wcstbl .funcsList2, "root", "logn", "div", "mod", "bitand", "bitor", "bitxor", "bitleft", "bitright"
 
 	[section .text]
 	align 4
-	.jmpTable	dd .bitnot, .sin, .cos, .tan, .asin, .acos, .atan, .sqrt, .abs
-				dd .exp, .lg, .ln, .log2, .log10, .sh, .ch, .th, .arsh, .arch, .arth
+	.jmpTable	dd .bitnot, .sinh, .cosh, .tanh, .asinh, .acosh, .atanh
+				dd .sin, .cos, .tan, .asin, .acos, .atan, .sqrt, .abs
+				dd .exp, .lg, .ln, .log2, .log10
 	.jmpTable2	dd .root, .logn, .div, .mod, .bitand, .bitor, .bitxor, .bitleft, .bitright
 endp
 
