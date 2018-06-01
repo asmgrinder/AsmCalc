@@ -101,15 +101,15 @@ proc MainDialog_Create, .Instance
 	enter	.uxtheme,\
 			.accelerator resd 1,\
 			.message: resb MSG.size
-		;~ invoke	LoadLibrary, "uxtheme.dll"
-		;~ test	eax, eax
-		;~ je		.noUxTheme
-		;~ mov		[.uxtheme], eax
-		;~ invoke	GetProcAddress, eax, .SetThemeAppProperties
-		;~ test	eax, eax
-		;~ je		.noUxTheme
-		;~ invoke	eax, STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS | STAP_ALLOW_WEBCONTENT
-	;~ .noUxTheme:
+		invoke	LoadLibrary, "uxtheme.dll"
+		test	eax, eax
+		je		.noUxTheme
+		mov		[.uxtheme], eax
+		invoke	GetProcAddress, eax, .SetThemeAppProperties
+		test	eax, eax
+		je		.noUxTheme
+		invoke	eax, STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS | STAP_ALLOW_WEBCONTENT
+	.noUxTheme:
 		;~ ;mov		eax, [.Instance]
 		;~ ;mov		[edi + MainDialog.Instance], eax
 		;~ invoke	DialogBoxParam, [.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
@@ -132,7 +132,7 @@ proc MainDialog_Create, .Instance
 					invoke	DispatchMessage, esi
 					jmp		.messageLoop
 	.quitMessageLoop:
-		;~ invoke	FreeLibrary, [.uxtheme]
+		invoke	FreeLibrary, [.uxtheme]
 	leave
 	return
 	.SetThemeAppProperties	db "SetThemeAppProperties", 0
