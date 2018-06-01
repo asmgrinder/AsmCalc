@@ -157,6 +157,7 @@ tword.size	equ 10
 
 import 	MessageBox, _MessageBoxW@16,\
 		ExitProcess, _ExitProcess@4,\
+		InitCommonControlsEx, _InitCommonControlsEx@4,\
 		LoadIcon, _LoadIconW@8,\
 		VirtualAlloc, _VirtualAlloc@16,\
 		VirtualFree, _VirtualFree@12,\
@@ -339,6 +340,8 @@ DLGC_WANTCHARS			equ 128
 DLGC_STATIC				equ 256
 DLGC_BUTTON				equ 0x2000
 
+ICC_WIN95_CLASSES		equ 255
+
 struc POINT
 	.x:		resd 1
 	.y:		resd 1
@@ -352,5 +355,11 @@ struc MSG
 	.lParam:	resd 1
 	.time:		resd 1
 	.pt:		resb POINT.size
+	.size:
+endstruc
+
+struc INITCOMMONCONTROLSEX
+	.dwSize:	resd 1
+	.dwICC:		resd 1
 	.size:
 endstruc

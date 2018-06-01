@@ -56,7 +56,11 @@ endp
 %endm
 
 proc initApp
+	;enter
 		xor     ebx, ebx        ; ebx = null
+
+		invoke	InitCommonControlsEx, InitCtrls
+
 		finit
 		;~ ; test cases
 		;~ testcase_evaluate "arch(0.1)", ANGLE_MODE_DEGREES, 0, 0.0
@@ -90,6 +94,7 @@ proc initApp
 		;~ testcase_evaluate "12345.555", ANGLE_MODE_DEGREES, 1, 12345.555
 		;~ testcase_evaluate "-1.3434e-2", ANGLE_MODE_DEGREES, 1, -1.3434e-2
 		;~ testcase_evaluate " -2 -1 ", ANGLE_MODE_DEGREES, 1, -3.0
+	;leave
 	return
 endp
 
@@ -101,6 +106,11 @@ endp
 FailStr:			unicode "fail", 0
 
 [section .data]
+InitCtrls:			istruc INITCOMMONCONTROLSEX
+	at INITCOMMONCONTROLSEX.dwSize
+					dd INITCOMMONCONTROLSEX.size
+					dd ICC_WIN95_CLASSES
+					iend
 SomeFloat:			dt -1.345546e-7
 
 [section .bss]
