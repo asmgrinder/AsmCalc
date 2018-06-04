@@ -18,27 +18,27 @@ IDC_BUTTONPLUS			equ 40009
 IDC_BUTTONCALC			equ 40010
 IDC_BUTTONMULTIPLY		equ 40011
 IDC_BUTTONDIVIDE		equ 40012
-IDC_BUTTONASIN			equ 40013
-IDC_BUTTON1				equ 40014
-IDC_BUTTON2				equ 40015
-IDC_BUTTON3				equ 40016
-IDC_BUTTON4				equ 40017
-IDC_BUTTON5				equ 40018
-IDC_BUTTON6				equ 40019
-IDC_BUTTON7				equ 40020
-IDC_BUTTON8				equ 40021
-IDC_BUTTON9				equ 40022
-IDC_BUTTONSIN			equ 40023
-IDC_BUTTONCOS			equ 40024
-IDC_BUTTONTAN			equ 40025
-IDC_BUTTONDIV			equ 40026
-IDC_BUTTONABS			equ 40027
-IDC_BUTTONXPOWY			equ 40028
-IDC_BUTTONLG			equ 40029
-IDC_BUTTONLN			equ 40030
-IDC_BUTTONEXP			equ 40031
-IDC_BUTTONSQRT			equ 40032
-IDC_BUTTONPERC			equ 40033
+IDC_BUTTON1				equ 40013
+IDC_BUTTON2				equ 40014
+IDC_BUTTON3				equ 40015
+IDC_BUTTON4				equ 40016
+IDC_BUTTON5				equ 40017
+IDC_BUTTON6				equ 40018
+IDC_BUTTON7				equ 40019
+IDC_BUTTON8				equ 40020
+IDC_BUTTON9				equ 40021
+IDC_BUTTONSIN			equ 40022
+IDC_BUTTONCOS			equ 40023
+IDC_BUTTONTAN			equ 40024
+IDC_BUTTONDIV			equ 40025
+IDC_BUTTONABS			equ 40026
+IDC_BUTTONXPOWY			equ 40027
+IDC_BUTTONLG			equ 40028
+IDC_BUTTONLN			equ 40029
+IDC_BUTTONEXP			equ 40030
+IDC_BUTTONSQRT			equ 40031
+IDC_BUTTONPERC			equ 40032
+IDC_BUTTONASIN			equ 40033
 IDC_BUTTONACOS			equ 40034
 IDC_BUTTONATAN			equ 40035
 IDC_BUTTONSINH			equ 40036
@@ -71,14 +71,19 @@ IDC_BUTTONBITNOT		equ 40062
 IDC_BUTTONBITLEFT		equ 40063
 IDC_BUTTONBITRIGHT		equ 40064
 IDC_BUTTONPOINT			equ 40065
-IDC_BUTTONCOUNT			equ	(1 + IDC_BUTTONPOINT - IDC_BUTTONADDHISTORY)
-IDC_STATICHINT			equ 40066
+IDC_BUTTONCOT			equ 40066
+IDC_BUTTONACOT			equ 40067
+IDC_BUTTONCOTH			equ 40068
+IDC_BUTTONACOTH			equ 40069
+IDC_BUTTONINT			equ 40070
+IDC_BUTTONROUND			equ 40071
+IDC_BUTTONCOUNT			equ	(1 + IDC_BUTTONROUND - IDC_BUTTONADDHISTORY)
+;IDC_STATICHINT			equ 40072
 
 ; main dialog structure
 struc MainDialog
-	;.Instance:		resd 1
+	.Instance:		resd 1
 	.Window:		resd 1
-	.StaticHint:	resd 1
 	.EditInput:		resd 1
 	.EditResult:	resd 1
 	.RadioDegrees:	resd 1	; these 3 radios should be groupped
@@ -91,9 +96,6 @@ struc MainDialog
 endstruc
 
 MAX_HISTORY_COUNT	equ	20
-
-;~ [section .bss]
-;~ message: resb MSG.size
 
 [section .text]
 ; ebx == null, edi == this
@@ -110,13 +112,13 @@ proc MainDialog_Create, .Instance
 		je		.noUxTheme
 		invoke	eax, STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS | STAP_ALLOW_WEBCONTENT
 	.noUxTheme:
-		;~ ;mov		eax, [.Instance]
-		;~ ;mov		[edi + MainDialog.Instance], eax
+		mov		eax, [.Instance]
+		mov		[edi + MainDialog.Instance], eax
 		;~ invoke	DialogBoxParam, [.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
-		invoke	LoadAccelerators, [.Instance], IDR_ACCELERATOR
+		invoke	LoadAccelerators, eax, IDR_ACCELERATOR
 		mov		[.accelerator], eax
 		; should be created via CreateDialog for dpi awareness to work
-		invoke	CreateDialogParam, [.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
+		invoke	CreateDialogParam, [edi + MainDialog.Instance], IDD_DLGMAIN, null, MainDialog_DialogProc, edi
 		lea		esi, [.message]
 	.messageLoop:
 		invoke	GetMessage, esi, null, _0, _0
@@ -157,9 +159,7 @@ proc MainDialog_InputEditProc, .Window, .Message, .WordParam, .LongParam
 endp
 ; ebx == null, edi == this
 proc MainDialog_onInitDialog
-	;enter
-		invoke	GetDlgItem, esi, IDC_STATICHINT
-		mov		[edi + MainDialog.StaticHint], eax
+	enter	.toolInfo resb TOOLINFO.size
 		invoke	GetDlgItem, esi, IDC_EDITINPUT
 		mov		[edi + MainDialog.EditInput], eax
 		invoke	GetDlgItem, esi, IDC_EDITRESULT
@@ -172,22 +172,115 @@ proc MainDialog_onInitDialog
 		mov		[edi + MainDialog.RadioGrads], eax
 		invoke	GetDlgItem, esi, IDC_COMBOHISTORY
 		mov		[edi + MainDialog.ComboHistory], eax
-
+		; check degrees radio
 		invoke	SendMessage, [edi + MainDialog.RadioDegrees], BM_SETCHECK, BST_CHECKED, _0
 		; replace input edit proc
 		invoke	SetWindowLongPtr, [edi + MainDialog.EditInput], GWLP_USERDATA, edi
 		invoke	SetWindowLongPtr, [edi + MainDialog.EditInput], GWLP_WNDPROC, MainDialog_InputEditProc
 		mov		[edi + MainDialog.InputEditProc], eax
-
+		; create tooltips
+		mov		edx, .hints
+		mov		ecx, .hints.length
+	.hintsLoop:
+		push	ecx, edx
+			push	dword TOOLINFO.size
+			pop		dword[.toolInfo + TOOLINFO.cbSize]
+			mov		[.toolInfo + TOOLINFO.hwnd], esi
+			push	dword (TTF_IDISHWND | TTF_SUBCLASS)
+			pop		dword[.toolInfo + TOOLINFO.uFlags]
+			push	dword[edx + ecx * dword.size - dword.size]
+			pop		dword[.toolInfo + TOOLINFO.lpszText]
+			add		ecx, IDC_BUTTON0 - 1
+			invoke	GetDlgItem, esi, ecx
+			mov		[.toolInfo + TOOLINFO.uId], eax
+			invoke	CreateWindowEx, _0, TOOLTIPS_CLASS, null, WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,\
+					CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, esi, null,\
+					dword[edi + MainDialog.Instance], null
+			test	eax, eax
+			je		.tooltipFail
+			lea		ecx, [.toolInfo]
+			invoke	SendMessage, eax, TTM_ADDTOOL, _0, ecx;
+		.tooltipFail:
+		pop		edx, ecx
+		loop	.hintsLoop
+		; load icon and set it to main window
 		invoke	LoadIcon, null, IDI_APPLICATION
-		push	eax, eax									; push 4th parameters on stack
+		push	eax, eax									; push two 4th parameters on stack
 		invoke	SendMessage, esi, WM_SETICON, ICON_SMALL	; 4th param already on stack
 		invoke	SendMessage, esi, WM_SETICON, ICON_BIG		; 4th param already on stack
-
+		; load history
 		stdcall	MainDialog_LoadHistory
-		;leave
+	leave
 	return
+; depends on controls identifiers
+wcstbl	.hints,\
+		"0",\
+		"-",\
+		"+",\
+		"calculates expression and replaces it with the result",\
+		"*",\
+		"/",\
+		"1",\
+		"2",\
+		"3",\
+		"4",\
+		"5",\
+		"6",\
+		"7",\
+		"8",\
+		"9",\
+		"sin(angle), depends on angle mode",\
+		"cos(angle), depends on angle mode",\
+		"tan(angle), depends on angle mode",\
+		"div(value1, value2), calculates int(value1 / value2)",\
+		"abs(value), absolute value",\
+		"x^y, exponentiation",\
+		"lg(value), logarithm with base 10, value > 0",\
+		"ln(value), logarithm with base 2.71828182845904524, value > 0",\
+		"exp(value), euler ^ val",\
+		"sqrt(value), square root, val >= 0",\
+		"12% = 0.12",\
+		"asin(value), depends on angle mode",\
+		"acos(value), depends on angle mode",\
+		"atan(value), depends on angle mode",\
+		"sinh(value), hyperbolic sine",\
+		"cosh(value), hyperbolic cosine",\
+		"tanh(value), hyperbolic tangent",\
+		"asinh(value), area hyperbolic sine",\
+		"acosh(value), area hyperbolic cosine",\
+		"atanh(value), area hyperbolic tangent",\
+		"root(value, power)",\
+		"x^3",\
+		"x^2",\
+		"logN(N, value)",\
+		"log2(value), logarithm with base 2",\
+		"lg(value), logarithm with base 10, value > 0",\
+		{"Archimedes", 27h, " constant, 3.14159265358979324..."},\
+		{"Euler", 27h, "s number, 2.71828182845904524..."},\
+		"clear expression",\
+		"(",\
+		")",\
+		"()",\
+		"bin(32 bit binary number)",\
+		"oct(32 bit octal number)",\
+		"hex(32 bit hexadecimal number)",\
+		"mod(value1, value2), calculates value1 - value2 * int(value1 / value2) ",\
+		"copy to clipboard",\
+		"bitand(value1, value2), bit AND of two 32 bit integer values",\
+		"bitor(value1, value2), bit OR of two 32 bit integer values",\
+		"bitxor(value1, value2), bit XOR of two 32 bit integer values",\
+		"bitnot(value), bit NOT of 32 bit integer value",\
+		"bitleft(value, shift), bit shift left of 32 bit integer value",\
+		"bitright(value, shift), bit shift right of 32 bit integer value",\
+		"separates integer and fractional parts",\
+		"cot(angle), cotangent, depends on angle mode",\
+		"acot(value), arccotangent, depends on angle mode",\
+		"coth(value), hyperbolic cotangent",\
+		"acoth(value), area hyperbolic cotangent",\
+		"int(value), integer part",\
+		"round(value), rounds number to nearest integer"
 endp
+
 ; ebx == null, edi == this
 proc MainDialog_onExit
 		; restore window proc
@@ -622,286 +715,254 @@ proc MainDialog_onButtonPress, .Id
 		.button0:
 			push	_0
 			push_unicode_string "0"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonMinus:
 			push	_0
 			push_unicode_string "-"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonPlus:
 			push	_0
 			push_unicode_string "+"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonMultiply:
 			push	_0
 			push_unicode_string "*"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonDivide:
 			push	_0
 			push_unicode_string "/"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonAsin:
 			push	dword -1
 			push_unicode_string "asin()"
-			push_unicode_string "hint: asin(value), depends on angle mode"
 			jmp		.replaceSel
 		.button1:
 			push	_0
 			push_unicode_string "1"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button2:
 			push	_0
 			push_unicode_string "2"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button3:
 			push	_0
 			push_unicode_string "3"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button4:
 			push	_0
 			push_unicode_string "4"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button5:
 			push	_0
 			push_unicode_string "5"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button6:
 			push	_0
 			push_unicode_string "6"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button7:
 			push	_0
 			push_unicode_string "7"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button8:
 			push	_0
 			push_unicode_string "8"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.button9:
 			push	_0
 			push_unicode_string "9"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonSin:
 			push	dword -1
 			push_unicode_string "sin()"
-			push_unicode_string "hint: sin(angle), depends on angle mode"
 			jmp		.replaceSel
 		.buttonCos:
 			push	dword -1
 			push_unicode_string "cos()"
-			push_unicode_string "hint: cos(angle), depends on angle mode"
 			jmp		.replaceSel
 		.buttonTan:
 			push	dword -1
 			push_unicode_string "tan()"
-			push_unicode_string "hint: tan(angle), depends on angle mode"
+			jmp		.replaceSel
+		.buttonCot:
+			push	-1
+			push_unicode_string "cot()"
 			jmp		.replaceSel
 		.buttonDiv:
 			push	dword -2
 			push_unicode_string "div(,)"
-			push_unicode_string "hint: div(value1, value2), calculates int(value1 / value2)"
 			jmp		.replaceSel
 		.buttonAbs:
 			push	dword -1
 			push_unicode_string "abs()"
-			push_unicode_string "hint: abs(value), absolute value"
 			jmp		.replaceSel
 		.buttonXpowY:
 			push	_0
 			push_unicode_string "^"
-			push_unicode_string "hint: x^y, exponentiation"
 			jmp		.replaceSel
 		.buttonLg:
 			push	dword -1
 			push_unicode_string "lg()"
-			push_unicode_string "hint: lg(value), logarithm with base 10, value > 0"
 			jmp		.replaceSel
 		.buttonLn:
 			push	dword -1
 			push_unicode_string "ln()"
-			push_unicode_string "hint: ln(value), logarithm with base 2.7178..., value > 0"
 			jmp		.replaceSel
 		.buttonExp:
 			push	dword -1
 			push_unicode_string "exp()"
-			push_unicode_string "hint: exp(value), euler ^ val"
 			jmp		.replaceSel
 		.buttonSqrt:
 			push	dword -1
 			push_unicode_string "sqrt()"
-			push_unicode_string "hint: sqrt(value), square root, val >= 0"
 			jmp		.replaceSel
 		.buttonPerc:
 			push	_0
 			push_unicode_string "%"
-			push_unicode_string "hint: 12% = 0.12"
 			jmp		.replaceSel
 		.buttonACos:
 			push	dword -1
 			push_unicode_string "acos()"
-			push_unicode_string "hint: acos(value), depends on angle mode"
 			jmp		.replaceSel
 		.buttonATan:
 			push	dword -1
 			push_unicode_string "atan()"
-			push_unicode_string "hint: atan(value), depends on angle mode"
+			jmp		.replaceSel
+		.buttonACot:
+			push	-1
+			push_unicode_string "acot()"
 			jmp		.replaceSel
 		.buttonSinh:
 			push	dword -1
 			push_unicode_string "sinh()"
-			push_unicode_string "hint: sinh(value), hyperbolic sine"
 			jmp		.replaceSel
 		.buttonCosh:
 			push	dword -1
 			push_unicode_string "cosh()"
-			push_unicode_string "hint: cosh(value), hyperbolic cosine"
 			jmp		.replaceSel
 		.buttonTanh:
 			push	dword -1
 			push_unicode_string "tanh()"
-			push_unicode_string "hint: tanh(value), hyperbolic tangent"
+			jmp		.replaceSel
+		.buttonCoth:
+			push	-1
+			push_unicode_string "coth()"
 			jmp		.replaceSel
 		.buttonASinh:
 			push	dword -1
 			push_unicode_string "asinh()"
-			push_unicode_string "hint: asinh(value), area hyperbolic sine"
 			jmp		.replaceSel
 		.buttonACosh:
 			push	dword -1
 			push_unicode_string "acosh()"
-			push_unicode_string "hint: acosh(value), area hyperbolic cosine"
 			jmp		.replaceSel
 		.buttonATanh:
 			push	dword -1
 			push_unicode_string "atanh()"
-			push_unicode_string "hint: atanh(value), area hyperbolic tangent"
+			jmp		.replaceSel
+		.buttonACoth:
+			push	-1
+			push_unicode_string "acoth()"
 			jmp		.replaceSel
 		.buttonRoot:
 			push	dword -2
 			push_unicode_string "root(,)"
-			push_unicode_string "hint: root(value, power)"
 			jmp		.replaceSel
 		.buttonXpow3:
 			push	_0
 			push_unicode_string "^3"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonXpow2:
 			push	_0
 			push_unicode_string "^2"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonLogN:
 			push	dword -2
 			push_unicode_string "logN(,)"
-			push_unicode_string "hint: logN(N, value)"
 			jmp		.replaceSel
 		.buttonLog2:
 			push	dword -1
 			push_unicode_string "log2()"
-			push_unicode_string "hint: log2(value), logarithm with base 2"
 			jmp		.replaceSel
 		.buttonLog10:
 			push	dword -1
 			push_unicode_string "lg()"
-			push_unicode_string "hint: lg(value), logarithm with base 10, value > 0"
 			jmp		.replaceSel
 		.buttonPi:
 			push	_0
 			push_unicode_string "pi"
-			push_unicode_string "hint: Archimedes` constant."
 			jmp		.replaceSel
 		.buttonEuler:
 			push	_0
 			push_unicode_string "euler"
-			push_unicode_string "hint: Euler`s number"
 			jmp		.replaceSel
 		.buttonBracket1:
 			push	_0
 			push_unicode_string "("
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonBracket2:
 			push	_0
 			push_unicode_string ")"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonBrackets:
 			push	dword -1
 			push_unicode_string "()"
-			push_unicode_string ""
 			jmp		.replaceSel
 		.buttonBin:
 			push	dword -1
 			push_unicode_string "bin()"
-			push_unicode_string "hint: bin(32 bit binary number)"
 			jmp		.replaceSel
 		.buttonOct:
 			push	dword -1
 			push_unicode_string "oct()"
-			push_unicode_string "hint: oct(32 bit octal number)"
 			jmp		.replaceSel
 		.buttonHex:
 			push	dword -1
 			push_unicode_string "hex()"
-			push_unicode_string "hint: hex(32 bit hexadecimal number)"
 			jmp		.replaceSel
 		.buttonMod:
 			push	dword -2
 			push_unicode_string "mod(,)"
-			push_unicode_string "hint: mod(value1, value2), calculates value1 - value2 * int(value1 / value2) "
 			jmp		.replaceSel
 		.buttonBitAnd:
 			push	dword -2
 			push_unicode_string "bitand(,)"
-			push_unicode_string "hint: bitand(value1, value2), bit AND of two 32 bit integer values"
 			jmp		.replaceSel
 		.buttonBitOr:
 			push	dword -2
 			push_unicode_string "bitor(,)"
-			push_unicode_string "hint: bitor(value1, value2), bit OR of two 32 bit integer values"
 			jmp		.replaceSel
 		.buttonBitXor:
 			push	dword -2
 			push_unicode_string "bitxor(,)"
-			push_unicode_string "hint: bitxor(value1, value2), bit XOR of two 32 bit integer values"
 			jmp		.replaceSel
 		.buttonBitNot:
 			push	dword -1
 			push_unicode_string "bitnot()"
-			push_unicode_string "hint: bitnot(value), bit NOT of 32 bit integer value"
 			jmp		.replaceSel
 		.buttonBitLeft:
 			push	dword -2
 			push_unicode_string "bitleft(,)"
-			push_unicode_string "hint: bitleft(value, shift), bit shift left of 32 bit integer value"
 			jmp		.replaceSel
 		.buttonBitRight:
 			push	dword -2
 			push_unicode_string "bitright(,)"
-			push_unicode_string "hint: bitright(value, shift), bit shift right of 32 bit integer value"
 			jmp		.replaceSel
 		.buttonPoint:
 			push	_0
 			push_unicode_string "."
-			push_unicode_string ""
+			jmp		.replaceSel
+		.buttonInt:
+			push	-1
+			push_unicode_string "int()"
+			jmp		.replaceSel
+		.buttonRound:
+			push	-1
+			push_unicode_string "round()"
+			;~ jmp		.replaceSel
 		.replaceSel:
-			invoke	SetWindowText, [edi + MainDialog.StaticHint]
-			lea		eax, [_0 + 1]	; replacement can be undone
-			invoke	SendMessage, [edi + MainDialog.EditInput], EM_REPLACESEL, eax
+			;~ invoke	SetWindowText, [edi + MainDialog.StaticHint]
+			invoke	SendMessage, [edi + MainDialog.EditInput], EM_REPLACESEL, 1	; 1 = replacement can be undone
 			lea		eax, [.selStart]
 			invoke	SendMessage, [edi + MainDialog.EditInput], EM_GETSEL, eax, null
 			pop		eax
@@ -914,15 +975,18 @@ proc MainDialog_onButtonPress, .Id
 	leave
 	return
 align 4
+; depends on controls identifiers
 .jmpTable:	dd .buttonAddHistory, .button0, .buttonMinus, .buttonPlus, .buttonCalc, .buttonMultiply, .buttonDivide
-			dd .buttonAsin, .button1, .button2, .button3, .button4, .button5, .button6, .button7, .button8, .button9
+			dd .button1, .button2, .button3, .button4, .button5, .button6, .button7, .button8, .button9
 			dd .buttonSin, .buttonCos, .buttonTan, .buttonDiv, .buttonAbs, .buttonXpowY, .buttonLg, .buttonLn
-			dd .buttonExp, .buttonSqrt, .buttonPerc, .buttonACos, .buttonATan, .buttonSinh, .buttonCosh, .buttonTanh
-			dd .buttonASinh, .buttonACosh, .buttonATanh, .buttonRoot, .buttonXpow3, .buttonXpow2
-			dd .buttonLogN, .buttonLog2, .buttonLog10, .buttonPi, .buttonEuler, .buttonClear
-			dd .buttonBracket1, .buttonBracket2, .buttonBrackets, .buttonBin, .buttonOct, .buttonHex
-			dd .buttonMod, .buttonCopy, .buttonBitAnd, .buttonBitOr, .buttonBitXor, .buttonBitNot
+			dd .buttonExp, .buttonSqrt, .buttonPerc, .buttonAsin, .buttonACos, .buttonATan
+			dd .buttonSinh, .buttonCosh, .buttonTanh, .buttonASinh, .buttonACosh, .buttonATanh
+			dd .buttonRoot, .buttonXpow3, .buttonXpow2, .buttonLogN, .buttonLog2, .buttonLog10
+			dd .buttonPi, .buttonEuler, .buttonClear, .buttonBracket1, .buttonBracket2, .buttonBrackets
+			dd .buttonBin, .buttonOct, .buttonHex, .buttonMod, .buttonCopy
+			dd .buttonBitAnd, .buttonBitOr, .buttonBitXor, .buttonBitNot
 			dd .buttonBitLeft, .buttonBitRight, .buttonPoint
+			dd .buttonCot, .buttonACot, .buttonCoth, .buttonACoth, .buttonInt, .buttonRound
 endp
 
 ; dialog proc

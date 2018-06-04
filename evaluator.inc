@@ -306,6 +306,13 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
+		.cot:
+			stdcall	convertAngleToRadians, [.AngleMode]
+			fptan
+			fdivrp	st1, st0
+			call	.checkFpuState
+			jne		.failFcomp
+			jmp		.done
 		.asin:
 			fld1
 			fld		st1
@@ -331,6 +338,14 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			jmp		.done
 		.atan:
 			fld1
+			fpatan
+			stdcall	convertRadiansToAngle, [.AngleMode]
+			call	.checkFpuState
+			jne		.failFcomp
+			jmp		.done
+		.acot:
+			fld1
+			fdivr	st1, st0
 			fpatan
 			stdcall	convertRadiansToAngle, [.AngleMode]
 			call	.checkFpuState
@@ -442,6 +457,22 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
+		.coth:
+			fld		st0
+			stdcall	exp
+			fxch	st1
+			fchs
+			stdcall	exp
+			fxch
+			fld		st1
+			fsub	st0, st1
+			fchs
+			fxch	st2
+			faddp	st1, st0
+			fdivrp	st1, st0
+			call	.checkFpuState
+			jne		.failFcomp
+			jmp		.done
 		.asinh:
 			fld		st0
 			fmul	st0, st0
@@ -470,11 +501,11 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 		.atanh:
 			fld1
 			fld		st1
-			fsubp
+			fsubrp	st1, st0
 			fxch
 			fld1
 			faddp
-			fxch
+;			fxch
 			fdivp	st1, st0
 			; ln
 			ftst
@@ -493,11 +524,45 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			call	.checkFpuState
 			jne		.failFcomp
 			jmp		.done
+		.acoth:
+			fld1
+			fld		st1
+			fsubrp	st1, st0
+			fxch
+			fld1
+			faddp
+			;~ fxch
+			fdivrp	st1, st0
+			; ln
+			ftst
+			fstsw	ax
+			sahf
+			mov		eax, .negativeLogArgStr
+			jb		.failFcomp
+			fld1
+			fldl2e
+			fdivp	st1, st0
+			fxch
+			fyl2x
+			fld1
+			fadd	st0, st0
+			fdivp	st1, st0
+			call	.checkFpuState
+			jne		.failFcomp
+			jmp		.done
+		.intPart:
+			stdcall	setRoundMode, ROUND_ZERO
+			frndint
+			stdcall	setRoundMode, ROUND_NEAREST
+			jmp		.done
+		.round:
+			stdcall	setRoundMode, ROUND_NEAREST
+			frndint
+			jmp		.done
 		.notEqualFunc:
 			inc		edx
 			cmp		edx, .funcsList.length
 			jb		.testAllFuncs
-
 			; functions with 2 arguments
 			xor		edx, edx
 			;mov		edx, .funcsList.length
@@ -512,8 +577,8 @@ proc Evaluate, .ExpressionStr, .Length, .AngleMode, .ResultPtr
 			jmp		[.jmpTable2 + edx * dword.size]; - dword.size]
 		.root:
 			fld1
-			fxch
-			fdivp	st1, st0
+			;fxch
+			fdivrp	st1, st0
 			stdcall	power
 			jne		.fail
 			call	.checkFpuState
@@ -754,7 +819,7 @@ align 4
 
 .testIfOpOk:
 	; test if there isn't operation to the left of '-' or '+'
-		push	eax, ecx, esi
+	push	eax, ecx, esi
 	.skip_spaces_left:
 		test	ecx, ecx
 		je		.test_done
@@ -777,8 +842,8 @@ align 4
 		je		.test_done
 		cmp		ax, 'E'
 	.test_done:
-		pop		esi, ecx, eax
-		ret
+	pop		esi, ecx, eax
+	ret
 
 .calculateSubexpressions:
 	lea		eax, [.result1]
@@ -843,22 +908,6 @@ align 4
 	push	ecx, edx, esi, edi
 		call	.stripBrackets
 		jne		.noExpr
-	;~ .remove_first_bracket:
-		;~ mov		eax, .noExpressionStr
-		;~ test	ecx, ecx
-		;~ je		.noExpr
-		;~ lodsw
-		;~ dec		ecx
-		;~ cmp		ax, '('
-		;~ jne		.remove_first_bracket
-	;~ .remove_last_bracket:
-		;~ mov		eax, .noExpressionStr
-		;~ jecxz	.noExpr
-		;~ mov		ax, [esi + ecx * word.size - word.size]
-		;~ dec		ecx
-		;~ cmp		ax, ')'
-		;~ jne		.remove_last_bracket
-		
 		xor		edi, edi	; brackets balance
 		push	ecx
 			xor		edx, edx
@@ -955,16 +1004,16 @@ align 4
 	.denormalizedStr		unicode "Denormalized", 0
 	.internalErrorStr		unicode "Internal error", 0
 
-	wcstbl .funcsList, "bitnot", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh",\
-						"sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "abs",\
-						"exp", "lg", "ln", "log2", "log10"
+	wcstbl .funcsList, "bitnot", "sinh", "cosh", "tanh", "coth", "asinh", "acosh", "atanh", "acoth",\
+						"sin", "cos", "tan", "cot", "asin", "acos", "atan", "acot", "sqrt", "abs",\
+						"exp", "lg", "ln", "log2", "log10", "int", "round"
 	wcstbl .funcsList2, "root", "logn", "div", "mod", "bitand", "bitor", "bitxor", "bitleft", "bitright"
 
 	[section .text]
 	align 4
-	.jmpTable	dd .bitnot, .sinh, .cosh, .tanh, .asinh, .acosh, .atanh
-				dd .sin, .cos, .tan, .asin, .acos, .atan, .sqrt, .abs
-				dd .exp, .lg, .ln, .log2, .log10
+	.jmpTable	dd .bitnot, .sinh, .cosh, .tanh, .coth, .asinh, .acosh, .atanh, .acoth
+				dd .sin, .cos, .tan, .cot, .asin, .acos, .atan, .acot, .sqrt, .abs
+				dd .exp, .lg, .ln, .log2, .log10, .intPart, .round
 	.jmpTable2	dd .root, .logn, .div, .mod, .bitand, .bitor, .bitxor, .bitleft, .bitright
 endp
 

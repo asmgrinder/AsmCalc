@@ -21,17 +21,21 @@ tword.size	equ 10
 	%endif
 %endm
 
-%macro unicode 1-2+
-    %strlen    %%charcnt    %1
-    %xdefine    %%index 1
-    %rep %%charcnt
-        %substr %%mychar %1 %%index
-        dw %%mychar
-        %xdefine %%index (%%index+1)
-    %endrep
-    %if %0 > 1
-		dw %2
-    %endif
+%macro unicode 1-*
+	%rep %0
+		%ifstr %1
+			%strlen    %%charcnt    %1
+			%xdefine    %%index 1
+			%rep %%charcnt
+				%substr %%mychar %1 %%index
+				dw %%mychar
+				%xdefine %%index (%%index+1)
+			%endrep
+		%else
+			dw %1
+		%endif
+		%rotate 1
+	%endrep
 %endm
 
 %macro wcstbl 2-*
@@ -68,7 +72,7 @@ tword.size	equ 10
 	%endrep
 %endm
 
-%macro push_unicode_string 1
+%macro push_unicode_string 1+
 	[section .rdata]
 	%%text:	unicode %1, 0
 	[section .text]
@@ -167,6 +171,7 @@ import 	MessageBox, _MessageBoxW@16,\
 		VirtualFree, _VirtualFree@12,\
 		GetModuleHandle, _GetModuleHandleW@4,\
 		LoadAccelerators, _LoadAcceleratorsW@8,\
+		CreateWindowEx, _CreateWindowExW@48,\
 		DialogBoxParam, _DialogBoxParamW@20,\
 		CreateDialogParam, _CreateDialogParamW@20,\
 		DestroyWindow, _DestroyWindow@4,\
@@ -203,6 +208,42 @@ import 	MessageBox, _MessageBoxW@16,\
 		CloseClipboard, _CloseClipboard@0,\
 		lstrlen, _lstrlenW@4,\
 		lstrcpy, _lstrcpyW@8
+
+%xdefine TOOLTIPS_CLASS "tooltips_class32"
+
+CW_USEDEFAULT			equ 0x80000000
+
+WS_POPUP				equ 0x80000000
+
+TTS_ALWAYSTIP			equ 1
+TTS_NOPREFIX			equ 2
+TTS_NOANIMATE			equ 0x10
+TTS_NOFADE				equ 0x20
+TTS_BALLOON				equ 0x40
+TTS_CLOSE				equ 0x80
+
+TTF_IDISHWND			equ 1
+TTF_CENTERTIP			equ 2
+TTF_RTLREADING			equ 4
+TTF_SUBCLASS			equ 16
+TTF_TRACK				equ 0x0020
+TTF_ABSOLUTE			equ 0x0080
+TTF_TRANSPARENT			equ 0x0100
+TTF_PARSELINKS 			equ 0x1000
+TTF_DI_SETITEM 			equ 0x8000
+
+WM_DESTROY				equ 2
+WM_CLOSE				equ 16
+WM_SETICON				equ 128
+WM_GETDLGCODE			equ	135
+WM_CHAR					equ 258
+WM_INITDIALOG			equ 272
+WM_COMMAND				equ 273
+WM_PASTE				equ 770
+WM_USER					equ 1024
+
+TTM_ADDTOOLW			equ (WM_USER+50)
+TTM_ADDTOOL				equ TTM_ADDTOOLW
 
 HKEY_CURRENT_USER		equ 80000001h
 ;REG_OPTION_NON_VOLATILE	equ	0
@@ -245,15 +286,6 @@ PAGE_READWRITE			equ 0x0004
 
 GWLP_WNDPROC			equ -4
 GWLP_USERDATA			equ -21
-
-WM_DESTROY				equ 2
-WM_CLOSE				equ 16
-WM_SETICON				equ 128
-WM_GETDLGCODE			equ	135
-WM_CHAR					equ 258
-WM_INITDIALOG			equ 272
-WM_COMMAND				equ 273
-WM_PASTE				equ 770
 
 EM_GETSEL				equ 176
 EM_SETSEL				equ 177
@@ -370,5 +402,17 @@ endstruc
 struc INITCOMMONCONTROLSEX
 	.dwSize:	resd 1
 	.dwICC:		resd 1
+	.size:
+endstruc
+
+struc TOOLINFO
+	.cbSize:		resd 1
+	.uFlags:		resd 1
+	.hwnd:			resd 1
+	.uId:			resd 1
+	.rect:			resd 4
+	.hinst:			resd 1
+	.lpszText:		resd 1
+	.lParam:		resd 1
 	.size:
 endstruc
