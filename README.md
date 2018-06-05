@@ -14,5 +14,5 @@ One of the ways to compile sources is to use yasm for compilation and mingw for 
 - Resource compilation: windres.exe -i calc.rc -F pe-i386 --input-format=rc -o calc.res -O coff 
 - Linking: g++ -o calc.exe calc.obj calc.res -luser32 -lkernel32 -ladvapi32 -lcomctl32 -nostdlib -mwindows
 
-##Visual styles
+## Visual styles
 To apply XP visual styles place calc.exe.manifest next by calc.exe
