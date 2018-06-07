@@ -324,9 +324,9 @@ endp
 proc MainDialog_Recalculate
 	enter	.angleMode resd 1,\
 			.textLength resd 1,\
-			.textSize resd 1,\
 			.textPtr resd 1,\
 			.result rest 1
+			;.textSize resd 1
 		mov		[edi + MainDialog.Evaluated], _0
 		; find out angle mode
 		stdcall	MainDialog_GetAngleMode
@@ -341,7 +341,12 @@ proc MainDialog_Recalculate
 		mov		[.textLength], eax
 		inc		eax		; eax += 1;
 		shl		eax, 1	; eax *= word.size;
-		mov		[.textSize], eax
+		; alloc at least 96 bytes (48 WCHARs) to have enough space for the result to fit
+		push	MAX_RESULT_LENGTH * word.size
+		pop		edx
+		cmp		eax, edx
+		cmovl	eax, edx
+		; mov		[.textSize], eax
 		; allocate memory for input expression and result
 		invoke	VirtualAlloc, null, eax, MEM_COMMIT, PAGE_READWRITE
 		test	eax,eax
@@ -700,7 +705,7 @@ proc MainDialog_onButtonPress, .Id
 					;~ mov		dword[edx], 3d0020h	; ' ='
 					;~ mov		word[edx + dword.size], ' '
 					lea		edx, [edx + 3]; * word.size]
-					invoke	GetWindowTextA, [edi + MainDialog.EditInput], edx, [.resultEditLength]
+					invoke	GetWindowTextA, [edi + MainDialog.EditResult], edx, [.resultEditLength]
 					invoke	GlobalUnlock, [.memoryHandle]
 					invoke	OpenClipboard, [edi + MainDialog.Window]
 					test	eax, eax
