@@ -405,14 +405,24 @@ struc INITCOMMONCONTROLSEX
 	.size:
 endstruc
 
+struc RECT
+	.left:		resd 1
+	.top:		resd 1
+	.right:		resd 1
+	.bottom:	resd 1
+	.size:
+endstruc
+
 struc TOOLINFO
 	.cbSize:		resd 1
 	.uFlags:		resd 1
 	.hwnd:			resd 1
 	.uId:			resd 1
-	.rect:			resd 4
+;	.rect:			resd 4
+	.rect:			resb RECT.size
 	.hinst:			resd 1
 	.lpszText:		resd 1
 	.lParam:		resd 1
+	.lpReserved:	resd 1
 	.size:
 endstruc

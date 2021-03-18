@@ -185,11 +185,14 @@ proc MainDialog_onInitDialog
 		push	ecx, edx
 			push	dword TOOLINFO.size
 			pop		dword[.toolInfo + TOOLINFO.cbSize]
-			mov		[.toolInfo + TOOLINFO.hwnd], esi
 			push	dword (TTF_IDISHWND | TTF_SUBCLASS)
 			pop		dword[.toolInfo + TOOLINFO.uFlags]
+			mov		[.toolInfo + TOOLINFO.hwnd], esi
 			push	dword[edx + ecx * dword.size - dword.size]
 			pop		dword[.toolInfo + TOOLINFO.lpszText]
+			mov		[.toolInfo + TOOLINFO.hinst], null
+			mov		[.toolInfo + TOOLINFO.lParam], _0
+			mov		[.toolInfo + TOOLINFO.lpReserved], _0
 			add		ecx, IDC_BUTTON0 - 1
 			invoke	GetDlgItem, esi, ecx
 			mov		[.toolInfo + TOOLINFO.uId], eax
@@ -199,7 +202,7 @@ proc MainDialog_onInitDialog
 			test	eax, eax
 			je		.tooltipFail
 			lea		ecx, [.toolInfo]
-			invoke	SendMessage, eax, TTM_ADDTOOL, _0, ecx;
+			invoke	SendMessage, eax, TTM_ADDTOOL, _0, ecx
 		.tooltipFail:
 		pop		edx, ecx
 		loop	.hintsLoop
@@ -214,21 +217,21 @@ proc MainDialog_onInitDialog
 	return
 ; depends on controls identifiers
 wcstbl	.hints,\
-		"0",\
-		"-",\
-		"+",\
+		"zero",\
+		"subtract",\
+		"add",\
 		"calculates expression and replaces it with the result",\
-		"*",\
-		"/",\
-		"1",\
-		"2",\
-		"3",\
-		"4",\
-		"5",\
-		"6",\
-		"7",\
-		"8",\
-		"9",\
+		"multiply",\
+		"divide",\
+		"one",\
+		"two",\
+		"three",\
+		"four",\
+		"five",\
+		"six",\
+		"seven",\
+		"eight",\
+		"nine",\
 		"sin(angle), depends on angle mode",\
 		"cos(angle), depends on angle mode",\
 		"tan(angle), depends on angle mode",\
@@ -239,7 +242,7 @@ wcstbl	.hints,\
 		"ln(value), logarithm with base 2.71828182845904524, value > 0",\
 		"exp(value), euler ^ val",\
 		"sqrt(value), square root, val >= 0",\
-		"12% = 0.12",\
+		"divides by 100, 12% = 0.12",\
 		"asin(value), depends on angle mode",\
 		"acos(value), depends on angle mode",\
 		"atan(value), depends on angle mode",\
@@ -255,7 +258,7 @@ wcstbl	.hints,\
 		"logN(N, value)",\
 		"log2(value), logarithm with base 2",\
 		"lg(value), logarithm with base 10, value > 0",\
-		{"Archimedes", 27h, " constant, 3.14159265358979324..."},\
+		{"Archimede", 27h, "s constant, 3.14159265358979324..."},\
 		{"Euler", 27h, "s number, 2.71828182845904524..."},\
 		"clear expression",\
 		"(",\
@@ -287,7 +290,7 @@ proc MainDialog_onExit
 		invoke	SetWindowLongPtr, [edi + MainDialog.EditInput], GWLP_WNDPROC, [edi + MainDialog.InputEditProc]
 		; end dialog
 		invoke	DestroyWindow, [edi + MainDialog.Window]
-	return
+	ret
 endp
 
 ; ebx == null, edi == this
@@ -326,7 +329,6 @@ proc MainDialog_Recalculate
 			.textLength resd 1,\
 			.textPtr resd 1,\
 			.result rest 1
-			;.textSize resd 1
 		mov		[edi + MainDialog.Evaluated], _0
 		; find out angle mode
 		stdcall	MainDialog_GetAngleMode
@@ -341,11 +343,15 @@ proc MainDialog_Recalculate
 		mov		[.textLength], eax
 		inc		eax		; eax += 1;
 		shl		eax, 1	; eax *= word.size;
-		; alloc at least 96 bytes (48 WCHARs) to have enough space for the result to fit
-		push	MAX_RESULT_LENGTH * word.size
-		pop		edx
-		cmp		eax, edx
-		cmovl	eax, edx
+
+		; alloc at least 96 bytes (48 WCHARs) to have enough space for the result to fit
+		push	MAX_RESULT_LENGTH * word.size
+		pop		edx
+
+		cmp		eax, edx
+
+		cmovl	eax, edx
+
 		; mov		[.textSize], eax
 		; allocate memory for input expression and result
 		invoke	VirtualAlloc, null, eax, MEM_COMMIT, PAGE_READWRITE
@@ -405,7 +411,7 @@ proc MainDialog_LoadHistory
 		invoke	RegCreateKeyEx, HKEY_CURRENT_USER, RegKeyNameStr, _0, null, _0, KEY_READ, null, eax, null
 		test	eax, eax				; ERROR_SUCCESS == 0
 		jne		.leave
-		;
+
 	.queryLoop:
 		lea		eax, [.keyName]
 		invoke	lstrcpy, eax, Key1NameStr
@@ -586,7 +592,8 @@ endp
 
 ; ebx == null, edi == this
 proc MainDialog_onCbnSelChange, .Id
-	enter	.selection resd 1, .textLength resd 1
+	enter	.selection resd 1, \
+			.textLength resd 1
 		cmp		dword[.Id], IDC_COMBOHISTORY
 		jne		.notComboHistory
 		invoke	SendMessage, [edi + MainDialog.ComboHistory], CB_GETCURSEL, _0, _0
@@ -1000,7 +1007,7 @@ proc MainDialog_DialogProc, .Dialog, .Message, .WordParam, .LongParam
 	push	ebx, esi, edi
 		xor		ebx, ebx
 		mov		esi, [.Dialog]
-		
+
 		invoke	GetWindowLongPtr, esi, GWLP_USERDATA
 		mov		edi, eax
 
